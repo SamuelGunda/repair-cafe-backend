@@ -1,0 +1,461 @@
+# Repair Cafe Backend Development Ruleset
+
+## Project Overview
+- **Technology Stack**: .NET 9, ASP.NET Core Web API
+- **Architecture**: Clean Architecture with CQRS pattern
+- **Structure**: Modular Monolith
+- **Authentication**: JWT-based with Role-based Authorization and Refresh Tokens
+- **Database**: Entity Framework Core, SQL Server for production, SQLite for development
+
+## Project Structure
+
+### Solution Layout
+```
+RepairCafe/
+├── src/
+│   ├── RepairCafe.Api/ # ASP.NET Core Web API
+│   ├── Shared/
+│   │   ├── RepairCafe.Shared.Kernel/   # Shared Kernel for common domain logic
+│   │   ├── RepairCafe.Shared.Application/  # Shared Application Services
+│   │   └── RepairCafe.Shared.Infrastructure/   # Shared Infrastructure Services
+│   └── Modules/
+│       ├── Authentication/
+│       │   ├── RepairCafe.Authentication.Domain/
+│       │   ├── RepairCafe.Authentication.Application/
+│       │   ├── RepairCafe.Authentication.Infrastructure/
+│       │   └── RepairCafe.Authentication.Presentation/
+│       ├── RepairRequests/
+│       │   ├── RepairCafe.RepairRequests.Domain/
+│       │   ├── RepairCafe.RepairRequests.Application/
+│       │   ├── RepairCafe.RepairRequests.Infrastructure/
+│       │   └── RepairCafe.RepairRequests.Presentation/
+│       └── [Other modules as needed]
+└── tests/
+    └── [Test projects mirror src structure]
+```
+
+## Layer Responsibilities
+
+### Domain Layer
+- **Purpose**: Core business logic and entities
+- **Contains**: Entities, Aggregate Roots, Value Objects, Domain Events, Domain Services, Repository Interfaces
+- **Dependencies**: 
+  - RepairCafe.Shared.Kernel (for common domain abstractions)
+  - No other dependencies (innermost layer)
+- **Rules**:
+  - No external dependencies except basic .NET types and Shared.Kernel
+  - Rich domain models with business logic
+  - Use Aggregate Roots for consistency boundaries
+  - Domain events for cross-cutting concerns and eventual consistency
+  - Repository interfaces defined here (one per aggregate root)
+  - Domain services for complex business logic that doesn't belong to a single entity
+  - Return Result<T> from domain operations instead of throwing exceptions
+
+### Application Layer
+- **Purpose**: Use cases and application logic
+- **Contains**: Commands, Queries, Handlers, DTOs, Validators, Application Services
+- **Dependencies**: 
+  - Domain layer
+  - RepairCafe.Shared.Application (for shared application abstractions)
+  - RepairCafe.Shared.Kernel (for shared kernel types)
+- **Rules**:
+  - Implement CQRS pattern with MediatR
+  - Use FluentValidation for input validation
+  - Define application services interfaces
+  - Handle cross-cutting concerns via pipeline behaviors
+  - Use Unit of Work pattern for transaction management
+  - Return Result<T> from handlers for better error handling
+  - Handle domain events through event handlers
+
+### Infrastructure Layer
+- **Purpose**: External concerns (database, file system, external APIs)
+- **Contains**: Repository implementations, DbContext, External services, Configurations
+- **Dependencies**: 
+  - Domain layer
+  - Application layer
+  - RepairCafe.Shared.Infrastructure (for shared infrastructure services)
+  - RepairCafe.Shared.Application (for shared application abstractions)
+- **Rules**:
+  - Entity Framework Core configurations
+  - Repository pattern implementations
+  - External service integrations
+  - Database migrations
+  - SQLite for development, SQL Server for production
+
+### Presentation Layer
+- **Purpose**: HTTP concerns and API contracts
+- **Contains**: Controllers, DTOs, Filters, Middleware
+- **Dependencies**: 
+  - Application layer
+  - RepairCafe.Shared.Application (for shared application types)
+- **Rules**:
+  - Minimal controllers (delegating to MediatR)
+  - Swagger/OpenAPI documentation
+  - No direct domain layer dependencies
+
+## Authentication & Authorization Rules
+
+### Identity Module Structure
+- **User Entity**: Id, Username, Email, PasswordHash, RefreshToken, RefreshTokenExpiryTime, CreatedAt, UpdatedAt
+- **Role Entity**: Id, Name, Description
+- **UserRole Entity**: UserId, RoleId (many-to-many relationship)
+
+### JWT Implementation with Refresh Tokens
+- **Access Token**: 
+  - Short-lived (15-30 minutes)
+  - Contains user claims and roles
+  - **Storage**: Client-side only (memory/JavaScript variables)
+  - **Server Storage**: NOT stored on server (stateless)
+- **Refresh Token**: 
+  - Long-lived (7-30 days)
+  - **Database Storage**: Stored in User entity (RefreshToken, RefreshTokenExpiryTime)
+  - **Client Storage**: HttpOnly cookie (optional, for additional security)
+  - **Rotation**: Implement refresh token rotation for security
+- **Token Flow**:
+  1. Login: Return both access and refresh tokens
+  2. API calls: Use access token in Authorization header
+  3. Token refresh: Use refresh token to get new access token
+  4. Logout: Invalidate refresh token in database
+
+### Authorization Rules
+- Use `[Authorize(Roles = "RoleName")]` attribute
+- Implement custom authorization policies if needed
+- Role-based access control only (no claims-based)
+- Roles: Admin, Repairer, Customer (adjust as needed)
+
+## CQRS Implementation Rules
+
+### Commands
+- **Naming**: `CreateRepairRequestCommand`, `UpdateUserCommand`
+- **Structure**: Contains all required data for the operation
+- **Validation**: Use FluentValidation
+- **Return**: `Result<T>` or `Result` for better error handling
+- **Transaction**: Handled by TransactionBehavior pipeline
+- **Domain Events**: Can trigger domain events through aggregate operations
+
+### Queries
+- **Naming**: `GetRepairRequestByIdQuery`, `GetUsersByRoleQuery`
+- **Structure**: Contains filtering/paging parameters
+- **Return**: `Result<T>` with DTOs, never domain entities
+- **Caching**: Consider caching for read-heavy operations
+- **Transaction**: Bypass transaction behavior (read-only)
+- **Domain Events**: Should not trigger domain events
+
+### Handlers
+- **Naming**: `CreateRepairRequestCommandHandler`, `GetRepairRequestByIdQueryHandler`
+- **Pattern**: One handler per command/query
+- **Dependencies**: Inject repositories and services through constructor
+- **Transaction**: Commands participate in transactions, queries do not
+- **Return Types**: Use `Result<T>` for consistent error handling
+- **Domain Events**: Command handlers can trigger domain events through aggregate operations
+
+## Unit of Work & Transaction Management
+
+### TransactionBehavior Pipeline
+- **Purpose**: Automatically manage transactions for commands
+- **Implementation**: Use provided TransactionBehavior<TRequest, TResponse>
+- **Rules**:
+  - Only applies to commands (queries bypass transactions)
+  - Commits transaction after successful command execution
+  - Dispatches domain events after transaction commit
+  - Rolls back on exceptions
+  - Logs transaction outcomes
+
+### Unit of Work Pattern
+- **Interface**: IUnitOfWork in Shared.Application
+- **Implementation**: EF Core DbContext-based implementation
+- **Usage**: Injected into TransactionBehavior
+- **Scope**: Per request/transaction
+
+### Domain Event Dispatching
+- **Interface**: IDomainEventDispatcher in Shared.Kernel
+- **Timing**: After successful transaction commit
+- **Purpose**: Handle cross-cutting concerns and inter-module communication
+- **Event Collection**: Aggregate roots collect events, dispatcher processes them
+- **Event Handlers**: Implement `IDomainEventHandler<TDomainEvent>` for each event type
+
+## Database Rules
+
+### Entity Framework Configuration
+- **Approach**: Code-first with explicit configurations
+- **Configurations**: Use `IEntityTypeConfiguration<T>` for each entity
+- **Naming**: Table names plural, column names match property names
+- **Relationships**: Configure explicitly, not by convention
+- **Environment**: SQLite for development, SQL Server for production
+
+### Repository Pattern
+- **Generic Repository**: Base interface with common operations in Shared.Application
+- **Specific Repositories**: Inherit from generic, add specific methods
+- **Aggregate Root Focus**: One repository per aggregate root
+- **Unit of Work**: Implemented via TransactionBehavior pipeline
+- **Async**: All database operations must be async
+- **Return Types**: Use `Result<T>` for operations that can fail
+
+### Connection Strings
+- **Development**: SQLite database file
+- **Production**: SQL Server connection string
+- **Configuration**: Environment-specific in appsettings.json
+
+## Global Exception Handling
+
+### Middleware Implementation
+- **Custom Middleware**: Create `GlobalExceptionMiddleware`
+- **Exception Types**: Handle domain exceptions, validation exceptions, not found exceptions
+- **Logging**: Log all exceptions with structured logging
+- **Response Format**: Consistent error response structure
+
+### Exception Handling Rules
+- **Domain Exceptions**: Business rule violations
+- **Validation Exceptions**: Input validation failures (FluentValidation)
+- **Not Found Exceptions**: Resource not found
+- **Unauthorized Exceptions**: Authentication/authorization failures
+- **Unhandled Exceptions**: Generic error response without sensitive details
+
+## Pipeline Behaviors
+
+### MediatR Pipeline Order
+1. **LoggingBehavior**: Log request/response
+2. **ValidationBehavior**: Validate commands/queries
+3. **TransactionBehavior**: Manage transactions (commands only)
+4. **Handler Execution**: Execute actual command/query handler
+
+### Behavior Rules
+- **Queries**: Skip transaction behavior
+- **Commands**: Full pipeline execution
+- **Logging**: Structured logging with correlation IDs
+- **Validation**: Fail fast on validation errors
+
+## Code Quality Rules
+
+### General Guidelines
+- **Comments**: Only for complex business logic or non-obvious code
+- **Naming**: Descriptive names, avoid abbreviations
+- **Methods**: Single responsibility, keep methods small
+- **Classes**: Follow SOLID principles
+
+### File Organization
+- **One class per file**: Exception for small related classes
+- **Folder structure**: Group by feature, not by type
+- **Namespaces**: Match folder structure
+
+### Async/Await Rules
+- **Database Operations**: Always async
+- **External API calls**: Always async
+- **Controllers**: All actions async
+- **Suffix**: Async methods end with "Async"
+
+## Testing Guidelines
+
+### Test Structure
+- **Unit Tests**: Domain logic, application handlers
+- **Integration Tests**: API endpoints, database operations
+- **Test Framework**: xUnit, FluentAssertions, Moq
+- **Naming**: `MethodName_Scenario_ExpectedResult`
+
+### Test Coverage
+- **Domain Layer**: 90%+ coverage
+- **Application Layer**: 80%+ coverage
+- **Controllers**: Focus on integration tests
+- **Infrastructure**: Repository integration tests
+
+## Module Communication Rules
+
+### Inter-Module Communication
+- **Domain Events**: Primary method for loose coupling between modules
+- **Event Dispatcher**: Handle events after transaction commit
+- **Direct Calls**: Avoid direct module-to-module calls
+- **Shared Contracts**: Define in shared layer
+- **Eventual Consistency**: Accept eventual consistency between aggregates across modules
+
+### Module Independence
+- **Database**: Each module can have its own DbContext
+- **Dependencies**: Modules should not reference each other directly
+- **Shared Code**: Common utilities in shared layers
+- **Aggregate Boundaries**: Module boundaries should align with aggregate boundaries
+- **Event-Driven**: Use domain events for cross-module communication
+
+## Domain-Driven Design Patterns
+
+### Aggregate Roots
+- **Purpose**: Consistency boundaries within the domain
+- **Rules**:
+  - Only aggregate roots can be retrieved by repositories
+  - All changes to the aggregate go through the aggregate root
+  - Aggregate roots maintain invariants for their entire aggregate
+  - External entities can only hold references to aggregate root IDs
+  - Aggregate roots collect and raise domain events
+  - Keep aggregates small and focused
+  - One aggregate per transaction boundary
+
+### Domain Events
+- **Purpose**: Communicate state changes within and across bounded contexts
+- **Implementation**:
+  - Inherit from `IDomainEvent` in Shared.Kernel
+  - Immutable event objects with all necessary data
+  - Raised by aggregate roots during business operations
+  - Processed after successful transaction commit
+- **Event Handlers**:
+  - Implement `IDomainEventHandler<TDomainEvent>`
+  - Handle cross-cutting concerns (logging, notifications, etc.)
+  - Enable eventual consistency between aggregates
+  - Can trigger commands to other bounded contexts
+
+### Result Pattern
+- **Purpose**: Explicit error handling without exceptions
+- **Implementation**:
+  - Use `Result<T>` for operations that can fail
+  - Use `Result` for operations that don't return data
+  - Chain operations with `Map`, `MapAsync`, `Bind`, `BindAsync`
+  - Convert to HTTP responses in controllers
+- **Benefits**:
+  - Explicit error handling
+  - Better performance (no exceptions)
+  - Cleaner code flow
+  - Easier testing
+
+### Value Objects
+- **Purpose**: Immutable objects that represent domain concepts
+- **Rules**:
+  - No identity, compared by value
+  - Immutable once created
+  - Self-validating
+  - Rich behavior, not just data holders
+  - Used within entities and aggregate roots
+
+### Domain Services
+- **Purpose**: Business logic that doesn't belong to a single entity
+- **Rules**:
+  - Stateless operations
+  - Work with multiple entities/aggregates
+  - Contain complex business rules
+  - Interfaces defined in domain layer
+  - Implementation can be in domain or application layer
+
+## Domain Event Examples
+
+### Common Domain Events
+```csharp
+// User Registration
+public record UserRegisteredDomainEvent(Guid UserId, string Email, DateTime OccurredAt) : IDomainEvent;
+
+// Repair Request Created
+public record RepairRequestCreatedDomainEvent(Guid RepairRequestId, Guid CustomerId, DateTime OccurredAt) : IDomainEvent;
+
+// Repair Completed
+public record RepairCompletedDomainEvent(Guid RepairRequestId, Guid RepairerId, DateTime OccurredAt) : IDomainEvent;
+```
+
+### Event Handler Examples
+```csharp
+// Send welcome email when user registers
+public class UserRegisteredDomainEventHandler : IDomainEventHandler<UserRegisteredDomainEvent>
+{
+    public async Task Handle(UserRegisteredDomainEvent domainEvent, CancellationToken cancellationToken)
+    {
+        // Send welcome email
+        // Create user profile
+        // Log registration
+    }
+}
+```
+
+## Result Pattern Usage
+
+### Command Handler Example
+```csharp
+public async Task<Result<Guid>> Handle(CreateRepairRequestCommand request, CancellationToken cancellationToken)
+{
+    var customerResult = await _customerRepository.GetByIdAsync(request.CustomerId);
+    if (customerResult.IsFailure)
+        return Result<Guid>.Failure(customerResult.Error);
+    
+    var repairRequest = RepairRequest.Create(request.Description, customerResult.Value);
+    if (repairRequest.IsFailure)
+        return Result<Guid>.Failure(repairRequest.Error);
+    
+    await _repairRequestRepository.AddAsync(repairRequest.Value);
+    
+    return Result<Guid>.Success(repairRequest.Value.Id);
+}
+```
+
+### Controller Example
+```csharp
+[HttpPost]
+public async Task<IActionResult> CreateRepairRequest(CreateRepairRequestCommand command)
+{
+    var result = await _mediator.Send(command);
+    
+    return result.IsSuccess 
+        ? Ok(result.Value) 
+        : BadRequest(result.Error);
+}
+```
+
+### Database Optimization
+- **Indexes**: Add indexes for frequently queried columns
+- **Pagination**: Implement pagination for list queries
+- **Lazy Loading**: Disable lazy loading, use explicit loading
+- **Connection Pooling**: Configure connection pooling
+
+### Caching Strategy
+- **In-Memory Cache**: For frequently accessed data
+- **Query Caching**: Cache expensive read operations
+- **Cache Keys**: Structured and predictable naming
+- **Cache Invalidation**: Clear cache on data updates
+
+## Security Rules
+
+### Input Validation
+- **All Inputs**: Validate at API boundary with FluentValidation
+- **Sanitization**: Sanitize user inputs
+- **SQL Injection**: Use parameterized queries (EF Core handles this)
+- **XSS Prevention**: Proper output encoding
+
+### Authentication Security
+- **Password Hashing**: Use BCrypt or similar
+- **Token Security**: Secure token generation and storage
+- **Refresh Token**: Implement token rotation
+- **Rate Limiting**: Implement rate limiting for auth endpoints
+- **HTTPS**: Enforce HTTPS in production
+
+## Deployment & Configuration
+
+### Configuration Management
+- **appsettings.json**: Environment-specific configurations
+- **User Secrets**: For development sensitive data
+- **Environment Variables**: For production secrets
+- **Options Pattern**: Use IOptions<T> for configuration
+
+### Database Configuration
+- **Development**: SQLite with relative path
+- **Production**: SQL Server with connection pooling
+- **Migrations**: Automatic migration on startup for development
+
+## Development Workflow
+
+### Git Workflow
+- **Feature Branches**: One feature per branch
+- **Commit Messages**: Clear, descriptive commit messages
+- **Pull Requests**: Required for main branch
+- **Code Review**: Mandatory code review process
+
+### Development Standards
+- **Code Formatting**: Use EditorConfig
+- **Static Analysis**: Use built-in .NET analyzers
+- **Documentation**: README for each module
+- **API Documentation**: Swagger/OpenAPI
+
+## Logging Rules
+
+### Structured Logging
+- **Library**: Microsoft.Extensions.Logging with Serilog
+- **Log Levels**: Appropriate log levels (Debug, Info, Warning, Error)
+- **Correlation IDs**: For request tracking
+- **Sensitive Data**: Never log sensitive information (passwords, tokens)
+
+### Log Categories
+- **Application**: Business logic events
+- **Infrastructure**: Database operations, external calls
+- **Security**: Authentication/authorization events
+- **Performance**: Transaction timings and performance metrics

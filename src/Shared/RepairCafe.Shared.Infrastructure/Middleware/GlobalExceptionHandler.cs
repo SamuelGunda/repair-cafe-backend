@@ -1,3 +1,4 @@
+using FluentValidation;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 
@@ -34,9 +35,11 @@ public class GlobalExceptionHandlerMiddleware
 
     private static Task HandleExceptionAsync(HttpContext context, Exception exception, bool isDevelopment)
     {
-        var code = StatusCodes.Status500InternalServerError;
-
-        // if (exception is NotFoundException) code = StatusCodes.Status404NotFound;
+        var code = exception switch
+        {
+            ValidationException => StatusCodes.Status400BadRequest,
+            _ => StatusCodes.Status500InternalServerError
+        };
 
         var response = new
         {

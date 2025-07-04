@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
     <PackageReference Include="FluentValidation" />
     <PackageReference Include="MediatR" />
@@ -8,6 +8,7 @@
     <PackageReference Include="Microsoft.Extensions.Logging" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\RepairCafe.Shared.Application\RepairCafe.Shared.Application.csproj" />
     <ProjectReference Include="..\RepairCafe.Shared.Kernel\RepairCafe.Shared.Kernel.csproj" />
   </ItemGroup>
 </Project>

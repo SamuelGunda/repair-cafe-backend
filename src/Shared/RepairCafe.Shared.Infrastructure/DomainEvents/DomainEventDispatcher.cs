@@ -7,15 +7,17 @@ namespace RepairCafe.Shared.Infrastructure.DomainEvents;
 public class DomainEventDispatcher : IDomainEventDispatcher
 {
     private readonly IMediator _mediator;
+    private readonly DbContext _context;
 
-    public DomainEventDispatcher(IMediator mediator)
+    public DomainEventDispatcher(IMediator mediator, DbContext context)
     {
         _mediator = mediator;
+        _context = context;
     }
 
-    public async Task DispatchEventsAsync(DbContext context, CancellationToken cancellationToken = default)
+    public async Task DispatchEventsAsync(CancellationToken cancellationToken = default)
     {
-        var domainEntities = context.ChangeTracker
+        var domainEntities = _context.ChangeTracker
             .Entries<IAggregateRoot>()
             .Where(x => x.Entity.DomainEvents.Any())
             .ToList();

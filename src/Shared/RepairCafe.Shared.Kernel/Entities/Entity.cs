@@ -1,4 +1,4 @@
-﻿using RepairCafe.Shared.Kernel.Abstractions;
+using RepairCafe.Shared.Kernel.Abstractions;
 
 namespace RepairCafe.Shared.Kernel.Entities;
 
@@ -25,7 +25,12 @@ public abstract class Entity : IEntity
 
     public override int GetHashCode()
     {
-        return GetKeys().Aggregate(default(int), HashCode.Combine);
+        var hashCode = new HashCode();
+        foreach (var key in GetKeys())
+        {
+            hashCode.Add(key);
+        }
+        return hashCode.ToHashCode();
     }
 }
 

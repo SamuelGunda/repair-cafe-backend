@@ -3,9 +3,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using RepairCafe.Shared.Infrastructure.Behaviors;
-using RepairCafe.Shared.Infrastructure.DomainEvents;
 using RepairCafe.Shared.Infrastructure.Middleware;
-using RepairCafe.Shared.Kernel.Abstractions;
 
 namespace RepairCafe.Shared.Infrastructure;
 
@@ -15,8 +13,6 @@ public static class DependencyInjection
     {
         services.AddScoped(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));
         services.AddScoped(typeof(IPipelineBehavior<,>), typeof(TransactionBehavior<,>));
-
-        services.AddScoped<IDomainEventDispatcher, DomainEventDispatcher>();
 
         return services;
     }

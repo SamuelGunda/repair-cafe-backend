@@ -4,5 +4,5 @@ using Microsoft.EntityFrameworkCore;
 
 public interface IDomainEventDispatcher
 {
-    Task DispatchEventsAsync(DbContext context, CancellationToken cancellationToken = default);
+    Task DispatchEventsAsync(CancellationToken cancellationToken = default);
 }
