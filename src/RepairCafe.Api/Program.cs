@@ -5,7 +5,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
 
-builder.Services.AddSharedInfrastructure();
+builder.Services.AddSharedInfrastructure(builder.Configuration);
 
 var assemblies = Directory.GetFiles(AppContext.BaseDirectory, "RepairCafe.*.Application.dll")
     .Select(Assembly.LoadFrom)

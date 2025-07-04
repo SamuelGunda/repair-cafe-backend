@@ -26,6 +26,8 @@ public class TransactionBehavior<TRequest, TResponse> : IPipelineBehavior<TReque
             return await next();
         }
 
+        await _unitOfWork.BeginTransactionAsync(cancellationToken);
+
         try
         {
             var response = await next();
@@ -33,12 +35,15 @@ public class TransactionBehavior<TRequest, TResponse> : IPipelineBehavior<TReque
             await _domainEventDispatcher.DispatchEventsAsync(cancellationToken);
             await _unitOfWork.SaveChangesAsync(cancellationToken);
 
+            await _unitOfWork.CommitTransactionAsync(cancellationToken);
+
             _logger.LogInformation("Transaction committed for {Request}", typeof(TRequest).Name);
 
             return response;
         }
         catch (Exception ex)
         {
+            await _unitOfWork.RollbackTransactionAsync(cancellationToken);
             _logger.LogError(ex, "Transaction failed for {Request}", typeof(TRequest).Name);
             throw;
         }

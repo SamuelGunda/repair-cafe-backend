@@ -3,8 +3,10 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
 using RepairCafe.Shared.Application.Abstractions;
+using RepairCafe.Shared.Infrastructure.Outbox;
 using RepairCafe.Shared.Infrastructure.Persistence;
 using RepairCafe.Shared.Kernel.Abstractions;
 
@@ -15,15 +17,18 @@ public class OutboxMessageProcessorJob : BackgroundService
     private readonly IServiceProvider _serviceProvider;
     private readonly ILogger<OutboxMessageProcessorJob> _logger;
     private readonly JsonSerializerSettings _serializerSettings;
+    private readonly OutboxSettings _settings;
 
     public OutboxMessageProcessorJob(
         IServiceProvider serviceProvider, 
         ILogger<OutboxMessageProcessorJob> logger, 
-        JsonSerializerSettings serializerSettings)
+        JsonSerializerSettings serializerSettings,
+        IOptions<OutboxSettings> outboxOptions)
     {
         _serviceProvider = serviceProvider;
         _logger = logger;
         _serializerSettings = serializerSettings;
+        _settings = outboxOptions.Value;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -31,7 +36,7 @@ public class OutboxMessageProcessorJob : BackgroundService
         while (!stoppingToken.IsCancellationRequested)
         {
             await ProcessOutboxMessagesAsync(stoppingToken);
-            await Task.Delay(TimeSpan.FromSeconds(10), stoppingToken);
+            await Task.Delay(TimeSpan.FromSeconds(_settings.PollingIntervalInSeconds), stoppingToken);
         }
     }
 
@@ -45,11 +50,10 @@ public class OutboxMessageProcessorJob : BackgroundService
 
         foreach (var dbContext in dbContexts)
         {
-            var context = (DbContext)dbContext;
             var messages = await dbContext.OutboxMessages
-                .Where(m => m.Status == "Pending")
+                .Where(m => m.Status == OutboxMessageStatus.Pending)
                 .OrderBy(m => m.OccurredOnUtc)
-                .Take(20)
+                .Take(_settings.BatchSize)
                 .ToListAsync(stoppingToken);
 
             foreach (var message in messages)
@@ -63,7 +67,7 @@ public class OutboxMessageProcessorJob : BackgroundService
                     if (domainEventObject is not IDomainEvent domainEvent)
                     {
                         _logger.LogWarning("Could not deserialize domain event from outbox message {MessageId}", message.Id);
-                        message.Status = "Failed";
+                        message.Status = OutboxMessageStatus.Failed;
                         message.Error = "Deserialization failed";
                         continue;
                     }
@@ -71,20 +75,22 @@ public class OutboxMessageProcessorJob : BackgroundService
                     await publisher.PublishAsync(domainEvent, stoppingToken);
 
                     message.ProcessedOnUtc = DateTime.UtcNow;
-                    message.Status = "Processed";
+                    message.Status = OutboxMessageStatus.Processed;
                 }
                 catch (Exception ex)
                 {
                     _logger.LogError(ex, "Error processing outbox message {MessageId}", message.Id);
                     message.Error = ex.Message;
                     message.RetryCount++;
-                    message.Status = "Failed";
+                    message.Status = message.RetryCount >= _settings.MaxRetries 
+                        ? OutboxMessageStatus.Failed 
+                        : OutboxMessageStatus.Pending;
                 }
             }
 
             if (messages.Any())
             {
-                await context.SaveChangesAsync(stoppingToken);
+                await dbContext.SaveChangesAsync(stoppingToken);
                 _logger.LogInformation("Processed {Count} messages from a DbContext.", messages.Count);
             }
         }

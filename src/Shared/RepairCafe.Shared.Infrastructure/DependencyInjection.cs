@@ -1,5 +1,6 @@
 using MediatR;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Newtonsoft.Json;
@@ -17,12 +18,18 @@ namespace RepairCafe.Shared.Infrastructure;
 
 public static class DependencyInjection
 {
-    public static IServiceCollection AddSharedInfrastructure(this IServiceCollection services)
+    public static IServiceCollection AddSharedInfrastructure(
+        this IServiceCollection services,
+        IConfiguration configuration)
     {
+        services.Configure<OutboxSettings>(
+            configuration.GetSection(OutboxSettings.SectionName));
+
         services.AddScoped(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));
         services.AddScoped(typeof(IPipelineBehavior<,>), typeof(TransactionBehavior<,>));
 
         services.AddScoped<IDomainEventPublisher, InProcessDomainEventPublisher>();
+        services.AddScoped<IDomainEventDispatcher, DomainEventDispatcher>();
 
         services.AddHostedService<OutboxMessageProcessorJob>();
 
