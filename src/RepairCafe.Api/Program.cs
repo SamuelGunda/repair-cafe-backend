@@ -1,4 +1,5 @@
 using RepairCafe.Shared.Infrastructure;
+using System.Reflection;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -6,9 +7,13 @@ builder.Services.AddControllers();
 
 builder.Services.AddSharedInfrastructure();
 
+var assemblies = Directory.GetFiles(AppContext.BaseDirectory, "RepairCafe.*.Application.dll")
+    .Select(Assembly.LoadFrom)
+    .ToArray();
+
 builder.Services.AddMediatR(cfg => 
 {
-    cfg.RegisterServicesFromAssembly(typeof(Program).Assembly);
+    cfg.RegisterServicesFromAssemblies(assemblies);
 });
 
 var app = builder.Build();

@@ -14,11 +14,16 @@ public class OutboxMessageProcessorJob : BackgroundService
 {
     private readonly IServiceProvider _serviceProvider;
     private readonly ILogger<OutboxMessageProcessorJob> _logger;
+    private readonly JsonSerializerSettings _serializerSettings;
 
-    public OutboxMessageProcessorJob(IServiceProvider serviceProvider, ILogger<OutboxMessageProcessorJob> logger)
+    public OutboxMessageProcessorJob(
+        IServiceProvider serviceProvider, 
+        ILogger<OutboxMessageProcessorJob> logger, 
+        JsonSerializerSettings serializerSettings)
     {
         _serviceProvider = serviceProvider;
         _logger = logger;
+        _serializerSettings = serializerSettings;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -53,7 +58,7 @@ public class OutboxMessageProcessorJob : BackgroundService
                 {
                     var domainEventObject = JsonConvert.DeserializeObject(
                         message.Content,
-                        new JsonSerializerSettings { TypeNameHandling = TypeNameHandling.All });
+                        _serializerSettings);
 
                     if (domainEventObject is not IDomainEvent domainEvent)
                     {

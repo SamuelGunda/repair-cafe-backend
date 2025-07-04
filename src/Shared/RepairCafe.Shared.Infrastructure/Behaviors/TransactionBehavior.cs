@@ -30,8 +30,8 @@ public class TransactionBehavior<TRequest, TResponse> : IPipelineBehavior<TReque
         {
             var response = await next();
 
-            await _unitOfWork.SaveChangesAsync(cancellationToken);
             await _domainEventDispatcher.DispatchEventsAsync(cancellationToken);
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
 
             _logger.LogInformation("Transaction committed for {Request}", typeof(TRequest).Name);
 
