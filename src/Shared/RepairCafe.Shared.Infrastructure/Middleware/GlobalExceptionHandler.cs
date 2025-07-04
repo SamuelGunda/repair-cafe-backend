@@ -35,23 +35,40 @@ public class GlobalExceptionHandlerMiddleware
 
     private static Task HandleExceptionAsync(HttpContext context, Exception exception, bool isDevelopment)
     {
-        var code = exception switch
+        var (statusCode, response) = exception switch
         {
-            ValidationException => StatusCodes.Status400BadRequest,
-            _ => StatusCodes.Status500InternalServerError
-        };
-
-        var response = new
-        {
-            error = exception.Message,
-            stackTrace = isDevelopment ? exception.StackTrace : null
+            ValidationException validationException => (
+                StatusCodes.Status400BadRequest,
+                new
+                {
+                    Title = "Validation failed",
+                    Status = StatusCodes.Status400BadRequest,
+                    Errors = validationException.Errors.Select(e => new { e.PropertyName, e.ErrorMessage })
+                }),
+            UnauthorizedAccessException => (
+                StatusCodes.Status403Forbidden,
+                (object)new
+                {
+                    Title = "Forbidden",
+                    Status = StatusCodes.Status403Forbidden,
+                    Detail = "You are not authorized to perform this action."
+                }),
+            _ => (
+                StatusCodes.Status500InternalServerError,
+                (object)new
+                {
+                    Title = "An error occurred",
+                    Status = StatusCodes.Status500InternalServerError,
+                    Detail = exception.Message,
+                    StackTrace = isDevelopment ? exception.StackTrace : null
+                })
         };
 
         var result = System.Text.Json.JsonSerializer.Serialize(response);
 
         context.Response.ContentType = "application/json";
-        context.Response.StatusCode = code;
-        
+        context.Response.StatusCode = statusCode;
+
         return context.Response.WriteAsync(result);
     }
 }

@@ -1,21 +1,21 @@
-﻿using MediatR;
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
+using Newtonsoft.Json;
+using RepairCafe.Shared.Infrastructure.Outbox;
+using RepairCafe.Shared.Infrastructure.Persistence;
 using RepairCafe.Shared.Kernel.Abstractions;
 
 namespace RepairCafe.Shared.Infrastructure.DomainEvents;
 
 public class DomainEventDispatcher : IDomainEventDispatcher
 {
-    private readonly IMediator _mediator;
     private readonly DbContext _context;
 
-    public DomainEventDispatcher(IMediator mediator, DbContext context)
+    public DomainEventDispatcher(DbContext context)
     {
-        _mediator = mediator;
         _context = context;
     }
 
-    public async Task DispatchEventsAsync(CancellationToken cancellationToken = default)
+    public Task DispatchEventsAsync(CancellationToken cancellationToken = default)
     {
         var domainEntities = _context.ChangeTracker
             .Entries<IAggregateRoot>()
@@ -26,14 +26,28 @@ public class DomainEventDispatcher : IDomainEventDispatcher
             .SelectMany(x => x.Entity.DomainEvents)
             .ToList();
 
+        if (_context is IOutboxDbContext outboxDbContext)
+        {
+            foreach (var domainEvent in domainEvents)
+            {
+                var outboxMessage = new OutboxMessage
+                {
+                    Id = Guid.NewGuid(),
+                    OccurredOnUtc = DateTime.UtcNow,
+                    Type = domainEvent.GetType().Name,
+                    Content = JsonConvert.SerializeObject(
+                        domainEvent,
+                        new JsonSerializerSettings { TypeNameHandling = TypeNameHandling.All })
+                };
+                outboxDbContext.OutboxMessages.Add(outboxMessage);
+            }
+        }
+
         foreach (var entity in domainEntities)
         {
             entity.Entity.ClearDomainEvents();
         }
 
-        foreach (var domainEvent in domainEvents)
-        {
-            await _mediator.Publish(domainEvent, cancellationToken);
-        }
+        return Task.CompletedTask;
     }
 }
