@@ -4,4 +4,8 @@
       <Folder Include="Controllers\" />
     </ItemGroup>
 
+    <ItemGroup>
+      <ProjectReference Include="..\Shared\RepairCafe.Shared.Infrastructure\RepairCafe.Shared.Infrastructure.csproj" />
+    </ItemGroup>
+
 </Project>

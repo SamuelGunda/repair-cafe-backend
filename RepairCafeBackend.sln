@@ -10,6 +10,12 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Settings", "Soluti
 		Directory.Packages.props = Directory.Packages.props
 	EndProjectSection
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RepairCafe.Shared.Kernel", "src\Shared\RepairCafe.Shared.Kernel\RepairCafe.Shared.Kernel.csproj", "{9D90B55D-EAEC-4998-BE83-ADCA105719D6}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Shared", "Shared", "{C526BA04-EEFE-49E4-B70A-7E38457C0837}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RepairCafe.Shared.Infrastructure", "src\Shared\RepairCafe.Shared.Infrastructure\RepairCafe.Shared.Infrastructure.csproj", "{B900A118-007C-45CF-A704-94049FD8BFF5}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -17,11 +23,22 @@ Global
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{0CCE26C6-24B9-40C3-9575-6A6A96DAFDD5} = {EE337038-099C-40EE-99A2-24C9DE060060}
+		{C526BA04-EEFE-49E4-B70A-7E38457C0837} = {EE337038-099C-40EE-99A2-24C9DE060060}
+		{9D90B55D-EAEC-4998-BE83-ADCA105719D6} = {C526BA04-EEFE-49E4-B70A-7E38457C0837}
+		{B900A118-007C-45CF-A704-94049FD8BFF5} = {C526BA04-EEFE-49E4-B70A-7E38457C0837}
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
 		{0CCE26C6-24B9-40C3-9575-6A6A96DAFDD5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{0CCE26C6-24B9-40C3-9575-6A6A96DAFDD5}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{0CCE26C6-24B9-40C3-9575-6A6A96DAFDD5}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{0CCE26C6-24B9-40C3-9575-6A6A96DAFDD5}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9D90B55D-EAEC-4998-BE83-ADCA105719D6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9D90B55D-EAEC-4998-BE83-ADCA105719D6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9D90B55D-EAEC-4998-BE83-ADCA105719D6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9D90B55D-EAEC-4998-BE83-ADCA105719D6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B900A118-007C-45CF-A704-94049FD8BFF5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B900A118-007C-45CF-A704-94049FD8BFF5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B900A118-007C-45CF-A704-94049FD8BFF5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B900A118-007C-45CF-A704-94049FD8BFF5}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
