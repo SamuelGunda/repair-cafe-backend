@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
 using RepairCafe.Shared.Infrastructure.Outbox;
+using RepairCafe.Shared.Infrastructure.Outbox.Models;
 using RepairCafe.Shared.Infrastructure.Persistence;
 using RepairCafe.Shared.Kernel.Abstractions;
 

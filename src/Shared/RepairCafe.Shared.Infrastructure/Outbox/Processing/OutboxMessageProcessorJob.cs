@@ -1,4 +1,3 @@
-using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -6,11 +5,12 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
 using RepairCafe.Shared.Application.Abstractions;
-using RepairCafe.Shared.Infrastructure.Outbox;
+using RepairCafe.Shared.Infrastructure.Outbox.Configurations;
+using RepairCafe.Shared.Infrastructure.Outbox.Models;
 using RepairCafe.Shared.Infrastructure.Persistence;
 using RepairCafe.Shared.Kernel.Abstractions;
 
-namespace RepairCafe.Shared.Infrastructure.BackgroundJobs;
+namespace RepairCafe.Shared.Infrastructure.Outbox.Processing;
 
 public class OutboxMessageProcessorJob : BackgroundService
 {

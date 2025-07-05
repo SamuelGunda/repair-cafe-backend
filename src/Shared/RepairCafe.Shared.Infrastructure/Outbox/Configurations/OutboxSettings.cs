@@ -1,4 +1,4 @@
-namespace RepairCafe.Shared.Infrastructure.BackgroundJobs;
+namespace RepairCafe.Shared.Infrastructure.Outbox.Configurations;
 
 public class OutboxSettings
 {

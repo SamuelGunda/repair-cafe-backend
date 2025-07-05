@@ -381,14 +381,15 @@ public async Task<Result<Guid>> Handle(CreateRepairRequestCommand request, Cance
 
 ### Controller Example
 ```csharp
-[HttpPost]
-public async Task<IActionResult> CreateRepairRequest(CreateRepairRequestCommand command)
+public class RepairRequestsController : ApiControllerBase
 {
-    var result = await _mediator.Send(command);
-    
-    return result.IsSuccess 
-        ? Ok(result.Value) 
-        : BadRequest(result.Error);
+    [HttpPost]
+    public async Task<IActionResult> CreateRepairRequest(CreateRepairRequestCommand command)
+    {
+        var result = await Mediator.Send(command);
+        
+        return HandleResult(result);
+    }
 }
 ```
 

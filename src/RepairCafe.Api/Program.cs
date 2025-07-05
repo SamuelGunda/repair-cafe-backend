@@ -1,29 +1,39 @@
+using Newtonsoft.Json;
 using RepairCafe.Shared.Infrastructure;
 using System.Reflection;
+using Microsoft.AspNetCore.Mvc;
+using RepairCafe.Api.Extensions;
+using RepairCafe.Api.Modules;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddNewtonsoftJson();
 
-builder.Services.AddSharedInfrastructure(builder.Configuration);
+builder.Services.AddOptions<MvcNewtonsoftJsonOptions>()
+    .Configure<JsonSerializerSettings>((options, settings) =>
+    {
+        var serviceProvider = builder.Services.BuildServiceProvider();
+        var registeredSettings = serviceProvider.GetRequiredService<JsonSerializerSettings>();
+        options.SerializerSettings.SerializationBinder = registeredSettings.SerializationBinder;
+        options.SerializerSettings.TypeNameHandling = registeredSettings.TypeNameHandling;
+    });
 
-var assemblies = Directory.GetFiles(AppContext.BaseDirectory, "RepairCafe.*.Application.dll")
-    .Select(Assembly.LoadFrom)
-    .ToArray();
+//    Example:
+//    builder.Services.AddRepairRequestsModule(builder.Configuration);
+
+builder.Services.AddSharedInfrastructure(builder.Configuration, ModuleRegistry.DomainAssemblies);
 
 builder.Services.AddMediatR(cfg => 
 {
-    cfg.RegisterServicesFromAssemblies(assemblies);
+    cfg.RegisterServicesFromAssemblies(ModuleRegistry.ApplicationAssemblies.ToArray());
 });
 
 var app = builder.Build();
 
 app.UseGlobalExceptionHandler();
-
 app.UseHttpsRedirection();
-
 app.UseAuthorization();
-
 app.MapControllers();
 
 app.Run();

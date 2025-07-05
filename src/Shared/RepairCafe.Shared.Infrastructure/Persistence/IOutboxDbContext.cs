@@ -1,6 +1,5 @@
 using Microsoft.EntityFrameworkCore;
-using RepairCafe.Shared.Infrastructure.Outbox;
-using System.Threading;
+using RepairCafe.Shared.Infrastructure.Outbox.Models;
 
 namespace RepairCafe.Shared.Infrastructure.Persistence;
 

@@ -1,8 +1,6 @@
 using FluentValidation;
-using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.Logging;
 
-namespace RepairCafe.Shared.Infrastructure.Middleware;
+namespace RepairCafe.Api.Middleware;
 
 public class GlobalExceptionHandlerMiddleware
 {
@@ -33,7 +31,10 @@ public class GlobalExceptionHandlerMiddleware
         }
     }
 
-    private static Task HandleExceptionAsync(HttpContext context, Exception exception, bool isDevelopment)
+    private static async Task HandleExceptionAsync(
+        HttpContext context, 
+        Exception exception, 
+        bool isDevelopment)
     {
         var (statusCode, response) = exception switch
         {
@@ -63,12 +64,10 @@ public class GlobalExceptionHandlerMiddleware
                     StackTrace = isDevelopment ? exception.StackTrace : null
                 })
         };
-
-        var result = Newtonsoft.Json.JsonConvert.SerializeObject(response);
-
+        
         context.Response.ContentType = "application/json";
         context.Response.StatusCode = statusCode;
 
-        return context.Response.WriteAsync(result);
+        await context.Response.WriteAsJsonAsync(response);
     }
 }

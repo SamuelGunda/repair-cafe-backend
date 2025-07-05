@@ -1,6 +1,4 @@
-using RepairCafe.Shared.Kernel.Abstractions;
-
-namespace RepairCafe.Shared.Infrastructure.Outbox;
+namespace RepairCafe.Shared.Infrastructure.Outbox.Models;
 
 public static class OutboxMessageStatus
 {
