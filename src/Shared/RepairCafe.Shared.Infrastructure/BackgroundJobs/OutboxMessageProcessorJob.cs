@@ -35,7 +35,15 @@ public class OutboxMessageProcessorJob : BackgroundService
     {
         while (!stoppingToken.IsCancellationRequested)
         {
-            await ProcessOutboxMessagesAsync(stoppingToken);
+            try
+            {
+                await ProcessOutboxMessagesAsync(stoppingToken);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "An unhandled exception occurred in the outbox processor.");
+            }
+
             await Task.Delay(TimeSpan.FromSeconds(_settings.PollingIntervalInSeconds), stoppingToken);
         }
     }
