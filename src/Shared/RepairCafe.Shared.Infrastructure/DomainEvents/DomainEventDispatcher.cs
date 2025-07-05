@@ -21,23 +21,15 @@ public class DomainEventDispatcher : IDomainEventDispatcher
 
     public Task DispatchEventsAsync(CancellationToken cancellationToken = default)
     {
-        if (_unitOfWork is not DbContext dbContext)
-        {
-            return Task.CompletedTask;
-        }
+        var aggregateRoots = _unitOfWork.GetAggregatesWithDomainEvents();
 
-        var domainEntities = dbContext.ChangeTracker
-            .Entries<IAggregateRoot>()
-            .Where(x => x.Entity.DomainEvents.Any())
-            .ToList();
-
-        var domainEventObjects = domainEntities
-            .SelectMany(x => x.Entity.DomainEvents)
+        var domainEvents = aggregateRoots
+            .SelectMany(x => x.DomainEvents)
             .ToList();
 
         if (_unitOfWork is IOutboxDbContext outboxDbContext)
         {
-            foreach (var outboxMessage in domainEventObjects.Select(domainEvent => new OutboxMessage
+            foreach (var outboxMessage in domainEvents.Select(domainEvent => new OutboxMessage
                      {
                          Id = Guid.NewGuid(),
                          OccurredOnUtc = DateTime.UtcNow,
@@ -51,9 +43,9 @@ public class DomainEventDispatcher : IDomainEventDispatcher
             }
         }
 
-        foreach (var entity in domainEntities)
+        foreach (var aggregateRoot in aggregateRoots)
         {
-            entity.Entity.ClearDomainEvents();
+            aggregateRoot.ClearDomainEvents();
         }
 
         return Task.CompletedTask;

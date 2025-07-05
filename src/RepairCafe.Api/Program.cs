@@ -1,6 +1,5 @@
 using Newtonsoft.Json;
 using RepairCafe.Shared.Infrastructure;
-using System.Reflection;
 using Microsoft.AspNetCore.Mvc;
 using RepairCafe.Api.Extensions;
 using RepairCafe.Api.Modules;
@@ -11,10 +10,9 @@ builder.Services.AddControllers()
     .AddNewtonsoftJson();
 
 builder.Services.AddOptions<MvcNewtonsoftJsonOptions>()
-    .Configure<JsonSerializerSettings>((options, settings) =>
+    .Configure<IServiceProvider>((options, sp) =>
     {
-        var serviceProvider = builder.Services.BuildServiceProvider();
-        var registeredSettings = serviceProvider.GetRequiredService<JsonSerializerSettings>();
+        var registeredSettings = sp.GetRequiredService<JsonSerializerSettings>();
         options.SerializerSettings.SerializationBinder = registeredSettings.SerializationBinder;
         options.SerializerSettings.TypeNameHandling = registeredSettings.TypeNameHandling;
     });

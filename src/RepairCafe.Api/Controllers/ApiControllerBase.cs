@@ -24,6 +24,7 @@ public abstract class ApiControllerBase : ControllerBase
             ErrorType.Validation => BadRequest(result.Error.Description),
             ErrorType.NotFound => NotFound(result.Error.Description),
             ErrorType.Conflict => Conflict(result.Error.Description),
+            ErrorType.Failure => StatusCode(StatusCodes.Status500InternalServerError, result.Error.Description),
             _ => BadRequest(result.Error.Description)
         };
     }
