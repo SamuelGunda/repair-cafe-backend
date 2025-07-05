@@ -8,19 +8,24 @@ namespace RepairCafe.Shared.Infrastructure.DomainEvents;
 
 public class DomainEventDispatcher : IDomainEventDispatcher
 {
-    private readonly DbContext _context;
+    private readonly IUnitOfWork _unitOfWork;
     private readonly JsonSerializerSettings _serializerSettings;
     
 
-    public DomainEventDispatcher(DbContext context, JsonSerializerSettings serializerSettings)
+    public DomainEventDispatcher(IUnitOfWork unitOfWork, JsonSerializerSettings serializerSettings)
     {
-        _context = context;
+        _unitOfWork = unitOfWork;
         _serializerSettings = serializerSettings;
     }
 
     public Task DispatchEventsAsync(CancellationToken cancellationToken = default)
     {
-        var domainEntities = _context.ChangeTracker
+        if (_unitOfWork is not DbContext dbContext)
+        {
+            return Task.CompletedTask;
+        }
+
+        var domainEntities = dbContext.ChangeTracker
             .Entries<IAggregateRoot>()
             .Where(x => x.Entity.DomainEvents.Any())
             .ToList();
@@ -29,7 +34,7 @@ public class DomainEventDispatcher : IDomainEventDispatcher
             .SelectMany(x => x.Entity.DomainEvents)
             .ToList();
 
-        if (_context is IOutboxDbContext outboxDbContext)
+        if (_unitOfWork is IOutboxDbContext outboxDbContext)
         {
             foreach (var outboxMessage in domainEventObjects.Select(domainEvent => new OutboxMessage
                      {

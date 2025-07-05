@@ -64,7 +64,7 @@ public class GlobalExceptionHandlerMiddleware
                 })
         };
 
-        var result = System.Text.Json.JsonSerializer.Serialize(response);
+        var result = Newtonsoft.Json.JsonConvert.SerializeObject(response);
 
         context.Response.ContentType = "application/json";
         context.Response.StatusCode = statusCode;

@@ -1,6 +1,8 @@
-﻿namespace RepairCafe.Shared.Kernel.Abstractions;
+﻿using MediatR;
 
-public interface IDomainEvent
+namespace RepairCafe.Shared.Kernel.Abstractions;
+
+public interface IDomainEvent  : INotification
 {
     DateTime OccurredOn { get; }
 }
