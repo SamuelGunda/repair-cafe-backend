@@ -345,40 +345,6 @@ public record RepairRequestCreatedDomainEvent(Guid RepairRequestId, Guid Custome
 public record RepairCompletedDomainEvent(Guid RepairRequestId, Guid RepairerId, DateTime OccurredAt) : IDomainEvent;
 ```
 
-### Event Handler Examples
-```csharp
-// Send welcome email when user registers
-public class UserRegisteredDomainEventHandler : IDomainEventHandler<UserRegisteredDomainEvent>
-{
-    public async Task Handle(UserRegisteredDomainEvent domainEvent, CancellationToken cancellationToken)
-    {
-        // Send welcome email
-        // Create user profile
-        // Log registration
-    }
-}
-```
-
-## Result Pattern Usage
-
-### Command Handler Example
-```csharp
-public async Task<Result<Guid>> Handle(CreateRepairRequestCommand request, CancellationToken cancellationToken)
-{
-    var customerResult = await _customerRepository.GetByIdAsync(request.CustomerId);
-    if (customerResult.IsFailure)
-        return Result<Guid>.Failure(customerResult.Error);
-    
-    var repairRequest = RepairRequest.Create(request.Description, customerResult.Value);
-    if (repairRequest.IsFailure)
-        return Result<Guid>.Failure(repairRequest.Error);
-    
-    await _repairRequestRepository.AddAsync(repairRequest.Value);
-    
-    return Result<Guid>.Success(repairRequest.Value.Id);
-}
-```
-
 ### Controller Example
 ```csharp
 public class RepairRequestsController : ApiControllerBase
@@ -460,3 +426,6 @@ public class RepairRequestsController : ApiControllerBase
 - **Infrastructure**: Database operations, external calls
 - **Security**: Authentication/authorization events
 - **Performance**: Transaction timings and performance metrics
+
+### Reviews
+-  **Package Versions**: Ignore the versions of packages, packages may have been updated since you last checked/have knowledge of the latest stable versions.

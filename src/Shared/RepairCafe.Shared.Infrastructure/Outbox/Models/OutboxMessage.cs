@@ -1,12 +1,5 @@
 namespace RepairCafe.Shared.Infrastructure.Outbox.Models;
 
-public static class OutboxMessageStatus
-{
-    public const string Pending = "Pending";
-    public const string Processed = "Processed";
-    public const string Failed = "Failed";
-}
-
 public class OutboxMessage
 {
     public Guid Id { get; set; }
@@ -16,5 +9,12 @@ public class OutboxMessage
     public DateTime? ProcessedOnUtc { get; set; }
     public string? Error { get; set; }
     public int RetryCount { get; set; } 
-    public string Status { get; set; }  = OutboxMessageStatus.Pending;
+    public OutboxMessageStatus Status { get; set; }  = OutboxMessageStatus.Pending;
+}
+
+public enum OutboxMessageStatus
+{
+    Pending,
+    Processed,
+    Failed
 }

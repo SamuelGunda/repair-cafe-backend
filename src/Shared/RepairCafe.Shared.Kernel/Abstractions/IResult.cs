@@ -1,4 +1,6 @@
-﻿namespace RepairCafe.Shared.Kernel.Abstractions;
+﻿using RepairCafe.Shared.Kernel.Entities;
+
+namespace RepairCafe.Shared.Kernel.Abstractions;
 
 public interface IResult
 {

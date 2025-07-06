@@ -1,4 +1,5 @@
 using FluentValidation;
+using Microsoft.AspNetCore.Mvc;
 
 namespace RepairCafe.Api.Middleware;
 
@@ -36,36 +37,39 @@ public class GlobalExceptionHandlerMiddleware
         Exception exception, 
         bool isDevelopment)
     {
-        var (statusCode, response) = exception switch
+        (var statusCode, object response) = exception switch
         {
             ValidationException validationException => (
                 StatusCodes.Status400BadRequest,
-                new
+                new ValidationProblemDetails(
+                    validationException.Errors.GroupBy(e => e.PropertyName)
+                        .ToDictionary(
+                            g => g.Key,
+                            g => g.Select(e => e.ErrorMessage).ToArray()
+                        ))
                 {
                     Title = "Validation failed",
-                    Status = StatusCodes.Status400BadRequest,
-                    Errors = validationException.Errors.Select(e => new { e.PropertyName, e.ErrorMessage })
+                    Status = StatusCodes.Status400BadRequest
                 }),
             UnauthorizedAccessException => (
                 StatusCodes.Status403Forbidden,
-                (object)new
+                new ProblemDetails
                 {
-                    Title = "Forbidden",
                     Status = StatusCodes.Status403Forbidden,
+                    Title = "Forbidden",
                     Detail = "You are not authorized to perform this action."
                 }),
             _ => (
                 StatusCodes.Status500InternalServerError,
-                (object)new
+                new ProblemDetails
                 {
-                    Title = "An error occurred",
                     Status = StatusCodes.Status500InternalServerError,
-                    Detail = exception.Message,
-                    StackTrace = isDevelopment ? exception.StackTrace : null
+                    Title = "An error occurred",
+                    Detail = isDevelopment ? exception.ToString() : "An internal server error has occurred."
                 })
         };
         
-        context.Response.ContentType = "application/json";
+        context.Response.ContentType = "application/problem+json";
         context.Response.StatusCode = statusCode;
 
         await context.Response.WriteAsJsonAsync(response);

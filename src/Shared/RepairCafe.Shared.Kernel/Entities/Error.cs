@@ -1,4 +1,4 @@
-namespace RepairCafe.Shared.Kernel.Abstractions;
+namespace RepairCafe.Shared.Kernel.Entities;
 
 public sealed class Error
 {
