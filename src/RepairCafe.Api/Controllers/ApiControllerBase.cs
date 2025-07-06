@@ -1,6 +1,5 @@
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
-using RepairCafe.Shared.Kernel.Abstractions;
 using RepairCafe.Shared.Kernel.Entities;
 
 namespace RepairCafe.Api.Controllers;
@@ -9,8 +8,12 @@ namespace RepairCafe.Api.Controllers;
 [Route("api/[controller]")]
 public abstract class ApiControllerBase : ControllerBase
 {
-    private ISender? _mediator;
-    protected ISender Mediator => _mediator ??= HttpContext.RequestServices.GetRequiredService<ISender>();
+    protected readonly ISender Mediator;
+
+    protected ApiControllerBase(ISender mediator)
+    {
+        Mediator = mediator;
+    }
 
     protected IActionResult HandleResult<T>(Result<T> result)
     {

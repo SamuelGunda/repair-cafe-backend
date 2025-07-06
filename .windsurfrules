@@ -349,6 +349,11 @@ public record RepairCompletedDomainEvent(Guid RepairRequestId, Guid RepairerId, 
 ```csharp
 public class RepairRequestsController : ApiControllerBase
 {
+    public RepairRequestsController(ISender mediator) : base(mediator)
+    {
+        
+    }
+    
     [HttpPost]
     public async Task<IActionResult> CreateRepairRequest(CreateRepairRequestCommand command)
     {

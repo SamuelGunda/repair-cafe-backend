@@ -19,6 +19,11 @@ public class OutboxMessageProcessorJob : BackgroundService
     private readonly JsonSerializerSettings _serializerSettings;
     private readonly OutboxSettings _settings;
 
+    private int _consecutiveDeserializationFailures;
+    private DateTime? _circuitOpenUntil;
+    private const int DeserializationFailureThreshold = 3;
+    private static readonly TimeSpan CircuitOpenDuration = TimeSpan.FromSeconds(60);
+
     public OutboxMessageProcessorJob(
         IServiceProvider serviceProvider, 
         ILogger<OutboxMessageProcessorJob> logger, 
@@ -35,6 +40,13 @@ public class OutboxMessageProcessorJob : BackgroundService
     {
         while (!stoppingToken.IsCancellationRequested)
         {
+            if (_circuitOpenUntil.HasValue && DateTime.UtcNow < _circuitOpenUntil.Value)
+            {
+                _logger.LogWarning("Circuit breaker is open. Pausing outbox processing until {OpenUntil}", _circuitOpenUntil.Value);
+                await Task.Delay(CircuitOpenDuration, stoppingToken);
+                continue;
+            }
+
             try
             {
                 await ProcessOutboxMessagesAsync(stoppingToken);
@@ -77,6 +89,7 @@ public class OutboxMessageProcessorJob : BackgroundService
                         _logger.LogWarning("Could not deserialize domain event from outbox message {MessageId}", message.Id);
                         message.Status = OutboxMessageStatus.Failed;
                         message.Error = "Deserialization failed";
+                        HandleDeserializationFailure();
                         continue;
                     }
 
@@ -84,6 +97,7 @@ public class OutboxMessageProcessorJob : BackgroundService
 
                     message.ProcessedOnUtc = DateTime.UtcNow;
                     message.Status = OutboxMessageStatus.Processed;
+                    ResetCircuitBreaker();
                 }
                 catch (Exception ex)
                 {
@@ -104,5 +118,22 @@ public class OutboxMessageProcessorJob : BackgroundService
         }
 
         _logger.LogInformation("Finished processing outbox messages.");
+    }
+
+    private void HandleDeserializationFailure()
+    {
+        _consecutiveDeserializationFailures++;
+        if (_consecutiveDeserializationFailures >= DeserializationFailureThreshold)
+        {
+            _circuitOpenUntil = DateTime.UtcNow.Add(CircuitOpenDuration);
+            _logger.LogError("Circuit breaker tripped due to {FailureCount} consecutive deserialization failures. Pausing for {Duration} seconds.", 
+                DeserializationFailureThreshold, CircuitOpenDuration.TotalSeconds);
+        }
+    }
+
+    private void ResetCircuitBreaker()
+    {
+        _consecutiveDeserializationFailures = 0;
+        _circuitOpenUntil = null;
     }
 }
