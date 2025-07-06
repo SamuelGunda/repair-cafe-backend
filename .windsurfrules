@@ -397,7 +397,7 @@ public class RepairRequestsController : ApiControllerBase
 ### Database Configuration
 - **Development**: SQLite with relative path
 - **Production**: SQL Server with connection pooling
-- **Migrations**: Automatic migration on startup for development
+- **Migrations**: Manually apply migrations for development, include in CI/CD pipeline for production
 
 ## Development Workflow
 

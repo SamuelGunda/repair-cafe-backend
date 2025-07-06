@@ -1,20 +1,24 @@
 ﻿using Newtonsoft.Json;
+using RepairCafe.Shared.Infrastructure.Outbox;
 using RepairCafe.Shared.Infrastructure.Outbox.Models;
-using RepairCafe.Shared.Infrastructure.Persistence;
 using RepairCafe.Shared.Kernel.Abstractions;
 
 namespace RepairCafe.Shared.Infrastructure.DomainEvents;
 
-public class DomainEventDispatcher : IDomainEventDispatcher
+internal class DomainEventDispatcher : IDomainEventDispatcher
 {
     private readonly IUnitOfWork _unitOfWork;
     private readonly JsonSerializerSettings _serializerSettings;
-    
+    private readonly IOutboxMessageRepository _outboxMessageRepository;
 
-    public DomainEventDispatcher(IUnitOfWork unitOfWork, JsonSerializerSettings serializerSettings)
+    public DomainEventDispatcher(
+        IUnitOfWork unitOfWork, 
+        JsonSerializerSettings serializerSettings,
+        IOutboxMessageRepository outboxMessageRepository)
     {
         _unitOfWork = unitOfWork;
         _serializerSettings = serializerSettings;
+        _outboxMessageRepository = outboxMessageRepository;
     }
 
     public Task DispatchEventsAsync(CancellationToken cancellationToken = default)
@@ -25,20 +29,19 @@ public class DomainEventDispatcher : IDomainEventDispatcher
             .SelectMany(x => x.DomainEvents)
             .ToList();
 
-        if (_unitOfWork is IOutboxDbContext outboxDbContext)
+        foreach (var domainEvent in domainEvents)
         {
-            foreach (var outboxMessage in domainEvents.Select(domainEvent => new OutboxMessage
-                     {
-                         Id = Guid.NewGuid(),
-                         OccurredOnUtc = DateTime.UtcNow,
-                         Type = domainEvent.GetType().Name,
-                         Content = JsonConvert.SerializeObject(
-                             domainEvent,
-                             _serializerSettings)
-                     }))
+            var outboxMessage = new OutboxMessage
             {
-                outboxDbContext.OutboxMessages.Add(outboxMessage);
-            }
+                Id = Guid.NewGuid(),
+                OccurredOnUtc = DateTime.UtcNow,
+                Type = domainEvent.GetType().Name,
+                Content = JsonConvert.SerializeObject(
+                    domainEvent,
+                    _serializerSettings)
+            };
+            
+            _outboxMessageRepository.Add(outboxMessage);
         }
 
         foreach (var aggregateRoot in aggregateRoots)

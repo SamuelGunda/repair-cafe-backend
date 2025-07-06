@@ -25,7 +25,7 @@ public abstract class ApiControllerBase : ControllerBase
             ErrorType.NotFound => NotFound(result.Error.Description),
             ErrorType.Conflict => Conflict(result.Error.Description),
             ErrorType.Failure => StatusCode(StatusCodes.Status500InternalServerError, result.Error.Description),
-            _ => BadRequest(result.Error.Description)
+            _ => StatusCode(StatusCodes.Status500InternalServerError, "An unexpected error occurred.")
         };
     }
 }

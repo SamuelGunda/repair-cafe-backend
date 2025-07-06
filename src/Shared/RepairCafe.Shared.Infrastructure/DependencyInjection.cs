@@ -11,6 +11,7 @@ using RepairCafe.Shared.Kernel.Abstractions;
 using System.Reflection;
 using RepairCafe.Shared.Infrastructure.Outbox.Configurations;
 using RepairCafe.Shared.Infrastructure.Outbox.Processing;
+using RepairCafe.Shared.Infrastructure.Outbox;
 
 namespace RepairCafe.Shared.Infrastructure;
 
@@ -29,6 +30,7 @@ public static class DependencyInjection
 
         services.AddScoped<IDomainEventPublisher, InProcessDomainEventPublisher>();
         services.AddScoped<IDomainEventDispatcher, DomainEventDispatcher>();
+        services.AddScoped<IOutboxMessageRepository, OutboxMessageRepository>();
 
         services.AddHostedService<OutboxMessageProcessorJob>();
 
