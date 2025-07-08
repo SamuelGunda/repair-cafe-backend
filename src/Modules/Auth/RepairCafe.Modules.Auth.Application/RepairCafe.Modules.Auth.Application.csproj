@@ -1,0 +1,9 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\Shared\RepairCafe.Shared.Application\RepairCafe.Shared.Application.csproj" />
+    <ProjectReference Include="..\RepairCafe.Modules.Auth.Domain\RepairCafe.Modules.Auth.Domain.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="FluentValidation" />
+  </ItemGroup>
+</Project>

@@ -1,8 +1,9 @@
 using MediatR;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using RepairCafe.Shared.Kernel.Entities;
 
-namespace RepairCafe.Api.Controllers;
+namespace RepairCafe.Shared.Presentation.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]

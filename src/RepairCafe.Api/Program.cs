@@ -1,37 +1,54 @@
+using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
-using RepairCafe.Shared.Infrastructure;
-using Microsoft.AspNetCore.Mvc;
+using Newtonsoft.Json.Converters;
+using Newtonsoft.Json.Serialization;
 using RepairCafe.Api.Extensions;
 using RepairCafe.Api.Modules;
+using RepairCafe.Modules.Auth.Infrastructure.Persistence;
+using RepairCafe.Shared.Infrastructure;
+using RepairCafe.Shared.Infrastructure.ModuleRegistry;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers()
-    .AddNewtonsoftJson();
-
-builder.Services.AddOptions<MvcNewtonsoftJsonOptions>()
-    .Configure<IServiceProvider>((options, sp) =>
+    .AddNewtonsoftJson(options =>
     {
-        var registeredSettings = sp.GetRequiredService<JsonSerializerSettings>();
-        options.SerializerSettings.SerializationBinder = registeredSettings.SerializationBinder;
-        options.SerializerSettings.TypeNameHandling = registeredSettings.TypeNameHandling;
+        options.SerializerSettings.TypeNameHandling = TypeNameHandling.None;
+        options.SerializerSettings.ContractResolver = new CamelCasePropertyNamesContractResolver();
+        options.SerializerSettings.Converters.Add(new StringEnumConverter());
+        options.SerializerSettings.NullValueHandling = NullValueHandling.Ignore;
     });
 
-//    Example:
-//    builder.Services.AddRepairRequestsModule(builder.Configuration);
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
 
-builder.Services.AddSharedInfrastructure(builder.Configuration, ModuleRegistry.DomainAssemblies);
+builder.Services.AddSharedInfrastructure(
+    builder.Configuration, 
+    ModuleRegistry.DomainAssemblies);
 
-builder.Services.AddMediatR(cfg => 
-{
-    cfg.RegisterServicesFromAssemblies(ModuleRegistry.ApplicationAssemblies.ToArray());
-});
+builder.Services.AddModules(builder.Configuration);
 
 var app = builder.Build();
 
-app.UseGlobalExceptionHandler();
+if (app.Environment.IsDevelopment())
+{
+    using var scope = app.Services.CreateScope();
+    var dbContext = scope.ServiceProvider.GetRequiredService<AuthDbContext>();
+    await dbContext.Database.MigrateAsync();
+}
+
+if (app.Environment.IsDevelopment())
+{
+    app.UseSwagger();
+    app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "Repair Cafe API v1"));
+}
+
 app.UseHttpsRedirection();
+
+app.UseAuthentication();
 app.UseAuthorization();
+
+app.UseGlobalExceptionHandler();
 app.MapControllers();
 
 app.Run();
