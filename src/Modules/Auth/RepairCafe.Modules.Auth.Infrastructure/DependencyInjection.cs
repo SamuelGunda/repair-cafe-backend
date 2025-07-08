@@ -25,10 +25,9 @@ public static class DependencyInjection
         this IServiceCollection services,
         IConfiguration configuration)
     {
-        services.Configure<JwtSettings>(
-            configuration.GetSection(JwtSettings.SectionName));
-        
-        services.AddSingleton(resolver => resolver.GetRequiredService<IOptions<JwtSettings>>().Value);
+        var jwtSettings = new JwtSettings();
+        configuration.Bind(JwtSettings.SectionName, jwtSettings);
+        services.AddSingleton(jwtSettings);
         
         ModuleRegistry.RegisterDomainAssembly(typeof(User).Assembly);
         ModuleRegistry.RegisterApplicationAssembly(typeof(RegisterCommand).Assembly);
@@ -79,9 +78,6 @@ public static class DependencyInjection
             })
             .AddJwtBearer(options =>
             {
-                var serviceProvider = services.BuildServiceProvider();
-                var jwtSettings = serviceProvider.GetRequiredService<JwtSettings>();
-                
                 options.TokenValidationParameters = new TokenValidationParameters
                 {
                     ValidateIssuer = true,

@@ -46,26 +46,16 @@ public class RegisterCommandHandler : ICommandHandler<RegisterCommand, Result<Au
             _logger.LogWarning("User registration failed: {Errors}", errors);
             
             return Result.Failure<AuthTokens>(
-                new Error("Registration.Failed", $"Failed to register user: {errors}", ErrorType.Validation));
+                new Error("Registration.Failed", "User registration failed. Please check the provided information and try again.", ErrorType.Validation));
         }
 
         // TODO: Add proper role management
         await _userManager.AddToRoleAsync(user, "Basic");
 
-        var claims = new List<Claim>
-        {
-            new(ClaimTypes.NameIdentifier, user.Id.ToString()),
-            new(ClaimTypes.Email, user.Email),
-            new(ClaimTypes.Name, user.UserName)
-        };
-        
         var roles = await _userManager.GetRolesAsync(user);
-        foreach (var role in roles)
-        {
-            claims.Add(new Claim(ClaimTypes.Role, role));
-        }
+        var roleClaims = roles.Select(role => new Claim(ClaimTypes.Role, role));
 
-        var tokens = _tokenService.GenerateTokens(user, claims);
+        var tokens = _tokenService.GenerateTokens(user, roleClaims);
 
         user.SetRefreshToken(tokens.RefreshToken, tokens.ExpiresAt);
         await _userManager.UpdateAsync(user);

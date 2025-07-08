@@ -23,6 +23,6 @@ public class AuthController : ApiControllerBase
             return CreatedAtAction(nameof(Register), result.Value);
         }
         
-        return BadRequest(result.Error);
+        return HandleResult(result);
     }
 }
