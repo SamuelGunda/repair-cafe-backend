@@ -1,7 +1,7 @@
 using System.Collections.Concurrent;
 using System.Reflection;
 
-namespace RepairCafe.Api.Modules;
+namespace RepairCafe.Shared.Infrastructure.ModuleRegistry;
 
 public static class ModuleRegistry
 {

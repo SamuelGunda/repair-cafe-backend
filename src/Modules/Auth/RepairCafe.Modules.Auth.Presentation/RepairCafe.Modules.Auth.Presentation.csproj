@@ -1,0 +1,6 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\Shared\RepairCafe.Shared.Presentation\RepairCafe.Shared.Presentation.csproj" />
+    <ProjectReference Include="..\RepairCafe.Modules.Auth.Application\RepairCafe.Modules.Auth.Application.csproj" />
+  </ItemGroup>
+</Project>

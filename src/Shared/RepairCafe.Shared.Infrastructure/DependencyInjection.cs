@@ -9,9 +9,10 @@ using RepairCafe.Shared.Infrastructure.DomainEvents;
 using RepairCafe.Shared.Infrastructure.Serialization;
 using RepairCafe.Shared.Kernel.Abstractions;
 using System.Reflection;
+using RepairCafe.Shared.Infrastructure.Integration;
 using RepairCafe.Shared.Infrastructure.Outbox.Configurations;
 using RepairCafe.Shared.Infrastructure.Outbox.Processing;
-using RepairCafe.Shared.Infrastructure.Outbox;
+using RepairCafe.Shared.Infrastructure.Outbox.Persistence;
 
 namespace RepairCafe.Shared.Infrastructure;
 
@@ -31,6 +32,7 @@ public static class DependencyInjection
         services.AddScoped<IDomainEventPublisher, InProcessDomainEventPublisher>();
         services.AddScoped<IDomainEventDispatcher, DomainEventDispatcher>();
         services.AddScoped<IOutboxMessageRepository, OutboxMessageRepository>();
+        services.AddScoped<IIntegrationEventPublisher, OutboxIntegrationEventPublisher>();
 
         services.AddHostedService<OutboxMessageProcessorJob>();
 

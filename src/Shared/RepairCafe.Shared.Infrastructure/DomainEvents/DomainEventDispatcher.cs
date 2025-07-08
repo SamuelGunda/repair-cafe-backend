@@ -1,7 +1,7 @@
 ﻿using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
-using RepairCafe.Shared.Infrastructure.Outbox;
 using RepairCafe.Shared.Infrastructure.Outbox.Models;
+using RepairCafe.Shared.Infrastructure.Outbox.Persistence;
 using RepairCafe.Shared.Kernel.Abstractions;
 
 namespace RepairCafe.Shared.Infrastructure.DomainEvents;

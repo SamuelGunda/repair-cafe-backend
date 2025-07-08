@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <PackageReference Include="MediatR" />
+    <PackageReference Include="Microsoft.AspNetCore.Mvc" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\RepairCafe.Shared.Kernel\RepairCafe.Shared.Kernel.csproj" />
+  </ItemGroup>
+</Project>

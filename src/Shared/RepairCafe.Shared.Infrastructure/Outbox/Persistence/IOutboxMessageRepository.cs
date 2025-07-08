@@ -1,6 +1,6 @@
 using RepairCafe.Shared.Infrastructure.Outbox.Models;
 
-namespace RepairCafe.Shared.Infrastructure.Outbox;
+namespace RepairCafe.Shared.Infrastructure.Outbox.Persistence;
 
 public interface IOutboxMessageRepository
 {
